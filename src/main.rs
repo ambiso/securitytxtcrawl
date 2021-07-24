@@ -39,7 +39,7 @@ async fn run_requests(
             let pb = pb.clone();
             async move {
                 let data = util::get_security_txt(domain.clone()).await?;
-                util::write_to_file(output_path, Path::new(&domain), data).await?;
+                util::write_to_file(output_path, Path::new(&domain), &data).await?;
 
                 let mut pb = pb.lock().map_err(|_| {
                     std::io::Error::new(std::io::ErrorKind::Other, "Could not lock")

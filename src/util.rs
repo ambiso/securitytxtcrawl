@@ -1,4 +1,4 @@
-use bytes::{Buf, Bytes};
+use bytes::Bytes;
 use log::info;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
@@ -20,19 +20,15 @@ pub async fn get_security_txt(domain: String) -> Result<Bytes, Box<dyn Error>> {
 pub async fn write_to_file(
     mut dir: PathBuf,
     name: &Path,
-    mut bytes: Bytes,
+    bytes: &Bytes,
 ) -> Result<(), Box<dyn Error>> {
     dir.push(name);
     let mut f = File::create(dir).await?;
-    while bytes.remaining() > 0 {
-        let chunk = bytes.chunk();
-        let len = chunk.len();
-        f.write_all(chunk).await?;
-        bytes.advance(len);
-    }
+    f.write_all(&bytes[..]).await?;
     Ok(())
 }
 
+/// Reads the domains from the given filepath or downloads a CSV of top 1 million domains
 pub async fn get_domains(fname: &Path) -> Result<Vec<String>, Box<dyn Error>> {
     let data = match File::open(fname).await {
         Ok(mut f) => {
@@ -68,4 +64,41 @@ pub async fn get_domains(fname: &Path) -> Result<Vec<String>, Box<dyn Error>> {
     // Avoid visiting the same sites in the same order every time we run
     retval.shuffle(&mut thread_rng());
     Ok(retval)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use rand::distributions::Alphanumeric;
+    use rand::{thread_rng, Rng};
+    use std::io::Read;
+
+    #[test]
+    fn test_write_file() -> Result<(), Box<dyn Error>> {
+        let mut temp_dir = std::env::temp_dir();
+        temp_dir.push(
+            thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(30)
+                .map(char::from)
+                .collect::<String>(),
+        );
+        std::fs::create_dir(&temp_dir)?;
+        let fname = Path::new("test");
+        let data: &'static [u8] = &[1, 2, 3];
+        tokio::runtime::Runtime::new()?.block_on(write_to_file(
+            temp_dir.to_path_buf(),
+            fname,
+            &Bytes::from(data),
+        ))?;
+
+        let mut temp_file = temp_dir.clone();
+        temp_file.push(fname);
+        let mut f = std::fs::File::open(temp_file)?;
+        let mut read_data = Vec::new();
+        f.read_to_end(&mut read_data)?;
+        assert_eq!(read_data, data);
+        Ok(())
+    }
 }
