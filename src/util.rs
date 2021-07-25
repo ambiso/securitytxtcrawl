@@ -6,9 +6,10 @@ use std::error::Error;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-use tokio::fs::File;
+use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+/// Obtain the security.txt from a given domain with a fixed timeout
 pub async fn get_security_txt(domain: String) -> Result<Bytes, Box<dyn Error>> {
     let client = reqwest::ClientBuilder::new()
         .timeout(Duration::from_secs(30))
@@ -17,6 +18,7 @@ pub async fn get_security_txt(domain: String) -> Result<Bytes, Box<dyn Error>> {
     Ok(client.get(&url).send().await?.bytes().await?)
 }
 
+/// Write bytes to a file at `dir/name`
 pub async fn write_to_file(
     mut dir: PathBuf,
     name: &Path,
@@ -70,7 +72,7 @@ pub async fn get_domains(fname: &Path) -> Result<Vec<String>, Box<dyn Error>> {
 mod test {
     use super::*;
 
-    use rand::distributions::Alphanumeric;
+    use rand::distributions::{Alphanumeric, Uniform};
     use rand::{thread_rng, Rng};
     use std::io::Read;
 
@@ -84,21 +86,30 @@ mod test {
                 .map(char::from)
                 .collect::<String>(),
         );
+
         std::fs::create_dir(&temp_dir)?;
         let fname = Path::new("test");
-        let data: &'static [u8] = &[1, 2, 3];
+        let data = thread_rng()
+            .sample_iter(&Uniform::new_inclusive(0, 255))
+            .take(13337)
+            .map(u8::from)
+            .collect::<Vec<_>>();
+
         tokio::runtime::Runtime::new()?.block_on(write_to_file(
             temp_dir.to_path_buf(),
             fname,
-            &Bytes::from(data),
+            &Bytes::from(data.clone()),
         ))?;
 
         let mut temp_file = temp_dir.clone();
         temp_file.push(fname);
-        let mut f = std::fs::File::open(temp_file)?;
+        let mut f = std::fs::File::open(&temp_file)?;
         let mut read_data = Vec::new();
         f.read_to_end(&mut read_data)?;
         assert_eq!(read_data, data);
+
+        std::fs::remove_file(temp_file)?;
+        std::fs::remove_dir(temp_dir)?;
         Ok(())
     }
 }
