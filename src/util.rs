@@ -57,7 +57,9 @@ pub async fn get_domains(fname: &Path) -> Result<Vec<String>, Box<dyn Error>> {
             data
         }
     };
-    let mut reader = csv::ReaderBuilder::new().has_headers(false).from_reader(std::io::Cursor::new(data));
+    let mut reader = csv::ReaderBuilder::new()
+        .has_headers(false)
+        .from_reader(std::io::Cursor::new(data));
     let mut retval: Vec<String> = Vec::new();
     for result in reader.records() {
         let record = result?;

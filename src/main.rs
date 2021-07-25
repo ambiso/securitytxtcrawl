@@ -60,12 +60,20 @@ async fn run_requests(
         .map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "Could not lock"))?;
     pb.1.finish();
 
-    info!("done. succeeded with {}/{} ({:.02}%)", successes, domains_len, successes as f64 / domains_len as f64 * 100.);
+    info!(
+        "done. succeeded with {}/{} ({:.02}%)",
+        successes,
+        domains_len,
+        successes as f64 / domains_len as f64 * 100.
+    );
     Ok(())
 }
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "securitytxtcrawl", about = "Crawl the security.txt of many websites")]
+#[structopt(
+    name = "securitytxtcrawl",
+    about = "Crawl the security.txt of many websites"
+)]
 struct Opt {
     /// Set the number of concurrent requests to perform.
     #[structopt(short = "c", long = "concurrency", default_value = "200")]
