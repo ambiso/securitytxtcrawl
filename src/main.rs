@@ -29,7 +29,6 @@ async fn run_requests(
             .template(
                 "{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({eta})",
             )
-            // .with_key("eta", |state| format!("{:.1}s", state.eta().as_secs_f64()))
             .progress_chars("#>-"),
     );
     let pb = Arc::new(Mutex::new((0, pb)));
