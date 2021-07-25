@@ -63,18 +63,14 @@ async fn run_requests(
 }
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "example", about = "An example of StructOpt usage.")]
+#[structopt(name = "securitytxtcrawl", about = "Crawl the security.txt of many websites")]
 struct Opt {
     /// Set the number of concurrent requests to perform.
-    #[structopt(short = "c", long = "concurrency", default_value = "1000")]
+    #[structopt(short = "c", long = "concurrency", default_value = "200")]
     concurrency: usize,
 
     /// Filename of the CSV containing the domains to crawl
-    ///
-    /// The format of the file should look like this:
-    /// 1,example.org
-    /// 2,example.org
-    ///
+    /// The CSV should contain a numeric ID and the domain.
     /// There is no header.
     /// If the file does not exist, a top 1 million domains list is downloaded.
     #[structopt(
