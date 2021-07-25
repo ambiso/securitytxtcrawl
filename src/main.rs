@@ -3,7 +3,7 @@
 use futures::stream;
 use futures::stream::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
-use log::info;
+use log::{error, info};
 use simple_logger::SimpleLogger;
 use std::error::Error;
 use std::path::{Path, PathBuf};
@@ -110,7 +110,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let opt = Opt::from_args();
 
-    tokio::fs::create_dir(&opt.output).await?;
+    match tokio::fs::create_dir(&opt.output).await {
+        Ok(_) => {},
+        Err(e) => {
+            error!("Failed to create output directory {}: {:?}", &opt.output.display(), e.to_string());
+            Err(e)?;
+        }
+    };
 
     run_requests(opt.domains_fname, opt.concurrency, opt.output).await?;
     Ok(())
