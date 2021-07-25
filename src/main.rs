@@ -3,6 +3,7 @@
 use futures::stream;
 use futures::stream::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
+use log::info;
 use simple_logger::SimpleLogger;
 use std::error::Error;
 use std::path::{Path, PathBuf};
@@ -20,8 +21,9 @@ async fn run_requests(
     output_path: PathBuf,
 ) -> Result<(), Box<dyn Error>> {
     let domains = util::get_domains(&domains_fname).await?;
+    let domains_len = domains.len();
 
-    let pb = ProgressBar::new(domains.len() as u64);
+    let pb = ProgressBar::new(domains_len as u64);
     pb.set_style(
         ProgressStyle::default_bar()
             .template(
@@ -33,8 +35,8 @@ async fn run_requests(
     let pb = Arc::new(Mutex::new((0, pb)));
     let pb_clone = pb.clone();
 
-    stream::iter(domains)
-        .map(move |domain| {
+    let successes = stream::iter(domains)
+        .map(|domain| {
             let output_path = output_path.clone();
             let pb = pb.clone();
             async move {
@@ -50,15 +52,15 @@ async fn run_requests(
             }
         })
         .buffer_unordered(concurrency)
-        .map(|x| x.is_ok())
-        .collect::<Vec<bool>>()
+        .fold(0, |a, x| async move { a + x.is_ok() as u64 })
         .await;
 
     let pb = pb_clone
         .lock()
         .map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "Could not lock"))?;
-    pb.1.finish_with_message("done");
+    pb.1.finish();
 
+    info!("done. succeeded with {}/{} ({:.02}%)", successes, domains_len, successes as f64 / domains_len as f64 * 100.);
     Ok(())
 }
 
