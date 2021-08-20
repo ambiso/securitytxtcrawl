@@ -1,5 +1,3 @@
-#![feature(async_closure)]
-
 use futures::stream;
 use futures::stream::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
